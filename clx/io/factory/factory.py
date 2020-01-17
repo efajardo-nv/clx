@@ -16,6 +16,7 @@ import logging
 from clx.io.factory.kafka_factory import KafkaFactory
 from clx.io.factory.fs_factory import FileSystemFactory
 from clx.io.factory.dask_fs_factory import DaskFileSystemFactory
+from clx.io.factory.blazingsql_factory import BlazingSQLFactory
 
 log = logging.getLogger(__name__)
 
@@ -23,9 +24,10 @@ log = logging.getLogger(__name__)
 class Factory:
 
     __cls_dict = {
-        "kafka": "KafkaFactory",
-        "fs": "FileSystemFactory",
+        "kafka": "KafkaFactory", 
+        "fs": "FileSystemFactory", 
         "dask_fs": "DaskFileSystemFactory",
+        "blazingsql": "BlazingSQLFactory"
     }
 
     @staticmethod
