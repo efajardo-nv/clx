@@ -10,7 +10,7 @@ class BlazingSQLReader(FileReader):
         self._has_data = True
         self._bc = BlazingContext()
 
-    def fetch_data(self, sql):
+    def fetch_data(self):
         for table in self.config['tables']:
             table_name = table["table_name"]
             file_path = table["input_path"]
@@ -18,6 +18,7 @@ class BlazingSQLReader(FileReader):
             del kwargs["table_name"]
             del kwargs["input_path"]
             self._bc.create_table(table_name, file_path, **kwargs)
+        sql = self.config["sql"]
         #Query
         result = self._bc.sql(sql)
         self.has_data = False
