@@ -34,15 +34,15 @@ expected_df = cudf.DataFrame(
 blazing_context = BlazingContext()
 
 @pytest.mark.parametrize("bc", [blazing_context])
-@pytest.mark.parametrize("test_input_base_path", [test_input_base_path])
 @pytest.mark.parametrize("expected_df", [expected_df])
-def test_fetch_data_csv(bc, test_input_base_path, expected_df):
-    test_input_path = "%s/person.csv" % (test_input_base_path)
+def test_fetch_data_csv(tmpdir, bc, expected_df):
+    fname = str(tmpdir.mkdir("tmp_test_blazingsql_reader").join("person.csv"))
+    expected_df.to_csv(fname, index=False)
     config = {
         "type": "blazingsql",
         "tables" : [
             {
-                "input_path": test_input_path,
+                "input_path": fname,
                 "table_name": "person_csv",
                 "header": 0
             }
@@ -56,16 +56,16 @@ def test_fetch_data_csv(bc, test_input_base_path, expected_df):
     assert fetched_df.equals(expected_df)
 
 @pytest.mark.parametrize("bc", [blazing_context])
-@pytest.mark.parametrize("test_input_base_path", [test_input_base_path])
 @pytest.mark.parametrize("expected_df", [expected_df])
-def test_fetch_data_parquet(bc, test_input_base_path, expected_df):
-    test_input_path = "%s/person.parquet" % (test_input_base_path)
+def test_fetch_data_parquet(tmpdir, bc, expected_df):
+    fname = str(tmpdir.mkdir("tmp_test_blazingsql_reader"))
+    cudf.io.parquet.to_parquet(expected_df, fname)
+    clx_input_path = fname + "/*.parquet"
     config = {
         "type": "blazingsql",
-        "input_format": "parquet",
         "tables" : [
             {
-                "input_path": test_input_path,
+                "input_path": clx_input_path,
                 "table_name": "person_pqt",
                 "header": 0
             }
@@ -78,16 +78,15 @@ def test_fetch_data_parquet(bc, test_input_base_path, expected_df):
     assert fetched_df.equals(expected_df)
 
 @pytest.mark.parametrize("bc", [blazing_context])
-@pytest.mark.parametrize("test_input_base_path", [test_input_base_path])
 @pytest.mark.parametrize("expected_df", [expected_df])
-def test_fetch_data_orc(bc, test_input_base_path, expected_df):
-    test_input_path = "%s/person.orc" % (test_input_base_path)
+def test_fetch_data_orc(tmpdir, bc, expected_df):
+    fname = str(tmpdir.mkdir("tmp_test_fs_reader").join("person.orc"))
+    cudf.io.orc.to_orc(expected_df, fname)
     config = {
         "type": "blazingsql",
-        "input_format": "orc",
         "tables" : [
             {
-                "input_path": test_input_path,
+                "input_path": fname,
                 "table_name": "person_orc",
                 "header": 0
             }

@@ -47,6 +47,8 @@ conda config --set ssl_verify False
 conda install nvstrings=${MINOR_VERSION} cugraph=${MINOR_VERSION} dask-cudf=${MINOR_VERSION} \
    requests yaml python-confluent-kafka python-whois dask
 
+conda install -c blazingsql-nightly/label/cuda$${CUDA_SHORT} -c blazingsql-nightly -c rapidsai-nightly -c conda-forge -c defaults blazingsql
+
 conda install -y pytorch==1.3.1 torchvision -c pytorch
 
 pip install mockito
