@@ -9,9 +9,14 @@ FROM rapidsai/rapidsai-dev-nightly:${RAPIDS_VERSION}-cuda${CUDA_VERSION}-devel-$
 ADD . /rapids/clx/
 
 SHELL ["/bin/bash", "-c"]
-    source activate rapids \
+
+RUN apt update -y --fix-missing && \
+    apt upgrade -y && \
+    apt install -y vim
+
+RUN source activate rapids \
     && conda install -c blazingsql-nightly/label/cuda${CUDA_VERSION} -c blazingsql-nightly -c rapidsai-nightly -c conda-forge -c defaults blazingsql \
-    && pip install flatbuffers \
+    && pip install flatbuffers
 
 RUN source activate rapids \
     && conda install --freeze-installed panel=0.6.* datashader geopandas pyppeteer cuxfilter s3fs \
