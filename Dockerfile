@@ -19,7 +19,7 @@ RUN source activate rapids \
     && pip install flatbuffers
 
 RUN source activate rapids \
-    && conda install -y -c pytorch pytorch==1.3.1 torchvision=0.4.2 datashader>=0.10.* panel=0.6.* geopandas>=0.6.* pyppeteer s3fs \
+    && conda install -y -c pytorch pytorch==1.3.1 torchvision=0.4.2 datashader>=0.10.* panel=0.6.* geopandas>=0.6.* pyppeteer s3fs gunicorn djangorestframework django supervisor nginx \
     && pip install "git+https://github.com/rapidsai/cudatashader.git" \
     && cd /rapids/clx \
     && pip install -e .
