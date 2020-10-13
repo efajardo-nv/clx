@@ -107,4 +107,3 @@ $ docker exec cybert-streamz ps aux | grep cybert.py | awk '{print $2}'
 $ docker exec cybert-streamz kill -SIGINT <pid>
 $ docker logs cybert-streamz
 ```
-
