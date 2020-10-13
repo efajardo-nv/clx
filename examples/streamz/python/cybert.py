@@ -134,11 +134,6 @@ def parse_arguments():
         help="Dask scheduler address. If not provided a new dask cluster will be created",
     )
     parser.add_argument(
-        "--cuda_visible_devices",
-        type=str,
-        help="Cuda visible devices (ex: '0,1,2')",
-    )
-    parser.add_argument(
         "--max_batch_size",
         default=1000,
         type=int,
@@ -150,18 +145,9 @@ def parse_arguments():
     return args
 
 
-def create_dask_client(dask_scheduler, cuda_visible_devices=[0]):
-    # If a dask scheduler is provided create client using that address
-    # otherwise create a new dask cluster
-    if dask_scheduler is not None:
-        print("Dask scheduler:", dask_scheduler)
-        client = Client(dask_scheduler)
-    else:
-        n_workers = len(cuda_visible_devices)
-        cluster = LocalCUDACluster(
-            CUDA_VISIBLE_DEVICES=cuda_visible_devices, n_workers=n_workers
-        )
-        client = Client(cluster)
+def create_dask_client():
+    cluster = LocalCUDACluster()
+    client = Client(cluster)
     print(client)
     return client
 
@@ -178,9 +164,7 @@ if __name__ == "__main__":
         "session.timeout.ms": 10000,
     }
     print("Producer conf:", producer_conf)
-    cuda_visible_devices = args.cuda_visible_devices.split(",")
-    cuda_visible_devices = [int(x) for x in cuda_visible_devices]
-    client = create_dask_client(args.dask_scheduler, cuda_visible_devices)
+    client = create_dask_client()
     client.run(worker_init)
 
     # Define the streaming pipeline.
