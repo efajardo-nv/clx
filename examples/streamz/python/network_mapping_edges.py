@@ -27,6 +27,7 @@ from clx_streamz_tools import streamz_workflow
 edge_defs = [
   {
     "dataSource": "winevt",
+    "timeCol":"time",
     "edges": [
       {
         "filters": ["eventcode==5156"],
@@ -42,69 +43,18 @@ edge_defs = [
   }
 ]
 
-
 class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
     def inference(self, messages_df):
-        # Messages will be received and run through DGA inferencing
         batch_start_time = int(round(time.time()))
         result_size = messages_df.shape[0]
         print("Processing batch size: " + str(result_size))
 
         edges_gdf = self.build_edges(messages_df)
+        edges_pd = edges_gdf.to_pandas()
 
-        # get major ports for each node
-        src_ports = ports.major_ports(edges_gdf["src"], edges_gdf["src_port"])
-        dst_ports = ports.major_ports(edges_gdf["dst"], edges_gdf["dst_port"])
+        edgelist_pd = pd.DataFrame({"edges": [edges_pd]})
 
-        # calculate top 5 source ports
-        src_ports_pd = src_ports.to_pandas()
-        src_ports_pd = src_ports_pd.groupby("addr").apply(self.top_n).reset_index()
-        src_ports_pd = src_ports_pd.rename(columns={"ports":"src_ports", "services":"src_services", "conns":"src_conns"})
-
-        # calculate top 5 dest ports
-        dst_ports_pd = dst_ports.to_pandas()
-        dst_ports_pd = dst_ports_pd.groupby("addr").apply(self.top_n).reset_index()
-        dst_ports_pd = dst_ports_pd.rename(columns={"ports":"dst_ports", "services":"dst_services", "conns":"dst_conns"})
-
-        # create single node list
-        nodes_pd = src_ports_pd.merge(dst_ports_pd, on=['addr'], how='outer')
-        
-        # build nodes dataframe for cugraph results
-        cg_nodes_gdf = cudf.DataFrame()
-        addr = edges_gdf["src"].append(edges_gdf["dst"]).drop_duplicates()
-        # addr = addr[clx.ip.is_ip(addr)]
-        cg_nodes_gdf["addr"] = addr
-        cg_nodes_gdf["id"] = clx.ip.ip_to_int(addr)
-
-        # build edges dataframe for cuGraph graph
-        cg_edges_gdf = cudf.DataFrame()
-        cg_edges_gdf['src'] = clx.ip.ip_to_int(edges_gdf['src'])
-        cg_edges_gdf['dst'] = clx.ip.ip_to_int(edges_gdf['dst'])
-        cg_edges_gdf["data"] = 1.0
-
-        # pagerank
-        G = cugraph.Graph()
-        G.from_cudf_edgelist(cg_edges_gdf, source="src", destination="dst", renumber=True)
-        pr = cugraph.pagerank(G, alpha=0.85, max_iter=500, tol=1.0e-05)
-        pr['id'] = pr['vertex']
-        cg_nodes_gdf = cg_nodes_gdf.merge(pr, on=['id'], how='left')
-        cg_nodes_gdf = cg_nodes_gdf.drop(['vertex'], axis=1)
-
-        # lovain
-        G = cugraph.Graph()
-        G.from_cudf_edgelist(cg_edges_gdf, source="src", destination="dst", renumber=True)
-        lv_gdf, lv_mod = cugraph.louvain(G) 
-        part_ids = lv_gdf["partition"].unique()
-        lv_gdf['id'] = lv_gdf['vertex']
-        cg_nodes_gdf = cg_nodes_gdf.merge(lv_gdf, on=['id'], how='left')
-        cg_nodes_gdf = cg_nodes_gdf.drop(['vertex'], axis=1)
-
-        # merge cuGraph results with original nodes dataframe
-        cg_nodes_pd = cg_nodes_gdf.drop(["id"], axis=1).to_pandas()
-        nodes_pd = nodes_pd.merge(cg_nodes_pd, on=['addr'], how='left')
-        nodelist_pd = pd.DataFrame({"nodes": [nodes_pd]})
-
-        return (nodelist_pd, batch_start_time, result_size)
+        return (edgelist_pd, batch_start_time, result_size)
 
     
     def worker_init(self):
@@ -118,10 +68,6 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
         obj_dict = {}
         worker = utils.init_dask_workers(worker, self.config, obj_dict)
 
-    
-    def top_n(self, df, n=5):
-        sorted_df = df.nlargest(n, "conns").sort_values(by="conns", ascending=False)
-        return pd.Series([list(sorted_df["port"]), list(sorted_df["service"]), list(sorted_df["conns"])], ["ports","services","conns"])
     
     def build_edges(self, wel_df):
         edges_gdf = None
@@ -137,6 +83,7 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
                 #         eventsDF = eventsDF.query(f)
                                 
                 evt_edges_gdf = cudf.DataFrame()
+                evt_edges_gdf['time'] = eventsDF[log["timeCol"]]
                 evt_edges_gdf['src'] = eventsDF[e["srcCol"]]
                 evt_edges_gdf['dst'] = eventsDF[e["dstCol"]]
                 evt_edges_gdf['src_port'] = eventsDF[e["srcPortCol"]]

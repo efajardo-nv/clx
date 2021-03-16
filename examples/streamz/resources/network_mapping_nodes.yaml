@@ -2,7 +2,7 @@
 cudf_engine: true
 kafka_conf:
    input_topic: netmap_input
-   output_topic: netmap_output
+   output_topic: netmap_nodes_output
    # consumer topic partitions
    n_partitions: 1
    producer_conf:
