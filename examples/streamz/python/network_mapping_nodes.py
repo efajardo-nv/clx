@@ -52,6 +52,10 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
 
         edges_gdf = self.build_edges(messages_df)
 
+        # filter out edges where src or dest is not ip address
+        edges_gdf = edges_gdf[clx.ip.is_ip(edges_gdf["src"])]
+        edges_gdf = edges_gdf[clx.ip.is_ip(edges_gdf["dst"])]
+
         # get major ports for each node
         src_ports = ports.major_ports(edges_gdf["src"], edges_gdf["src_port"])
         dst_ports = ports.major_ports(edges_gdf["dst"], edges_gdf["dst_port"])
@@ -72,7 +76,6 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
         # build nodes dataframe for cugraph results
         cg_nodes_gdf = cudf.DataFrame()
         addr = edges_gdf["src"].append(edges_gdf["dst"]).drop_duplicates()
-        # addr = addr[clx.ip.is_ip(addr)]
         cg_nodes_gdf["addr"] = addr
         cg_nodes_gdf["id"] = clx.ip.ip_to_int(addr)
 

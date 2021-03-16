@@ -50,6 +50,11 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
         print("Processing batch size: " + str(result_size))
 
         edges_gdf = self.build_edges(messages_df)
+        
+        # filter out edges where src or dest is not ip address
+        edges_gdf = edges_gdf[clx.ip.is_ip(edges_gdf["src"])]
+        edges_gdf = edges_gdf[clx.ip.is_ip(edges_gdf["dst"])]
+
         edges_pd = edges_gdf.to_pandas()
 
         edgelist_pd = pd.DataFrame({"edges": [edges_pd]})
