@@ -52,8 +52,6 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
 
         edges_gdf = self.build_edges(messages_df)
 
-        print(edges_gdf.head())
-
         # get major ports for each node
         src_ports = ports.major_ports(edges_gdf["src"], edges_gdf["src_port"])
         dst_ports = ports.major_ports(edges_gdf["dst"], edges_gdf["dst_port"])
@@ -74,7 +72,7 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
         # build nodes dataframe for cugraph results
         cg_nodes_gdf = cudf.DataFrame()
         addr = edges_gdf["src"].append(edges_gdf["dst"]).drop_duplicates()
-        addr = addr[clx.ip.is_ip(addr)]
+        # addr = addr[clx.ip.is_ip(addr)]
         cg_nodes_gdf["addr"] = addr
         cg_nodes_gdf["id"] = clx.ip.ip_to_int(addr)
 
@@ -104,8 +102,9 @@ class NetworkMappingWorkflow(streamz_workflow.StreamzWorkflow):
         # merge cuGraph results with original nodes dataframe
         cg_nodes_pd = cg_nodes_gdf.drop(["id"], axis=1).to_pandas()
         nodes_pd = nodes_pd.merge(cg_nodes_pd, on=['addr'], how='left')
+        nodelist_pd = pd.DataFrame({"nodes": [nodes_pd]})
 
-        return (nodes_pd, batch_start_time, result_size)
+        return (nodelist_pd, batch_start_time, result_size)
 
     
     def worker_init(self):
